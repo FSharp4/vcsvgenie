@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vcsvgenie"
-version = "0.2.0"
+version = "0.3.0"
 description = "Programmatic Interpretations of Cadence Virtuoso Waveform VCSV files"
 authors = [
     {name = "Jake Peterson", email = "jake612@duck.com"}

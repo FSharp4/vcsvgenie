@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Tuple
 from warnings import warn
 from matplotlib import pyplot as plt
 import numpy as np
@@ -31,6 +31,9 @@ class Propagation:
     delay: float
     interval: int
 
+    def type_label(self) -> str:
+        return f"{self.source} -> {self.destination}"
+
 class TransientResult:
     def __init__(self, inputs: List[WaveForm], outputs: List[WaveForm], name: str = "Transient Results"):
         self.timestamps = inputs[0].x
@@ -54,6 +57,14 @@ class TransientResult:
         self._transitions: List[List[Transition]] = list()
         self._interval_start_idxs: NDArray[np.int32] = np.zeros(1, dtype=np.int32)
         self._interval_end_idxs: NDArray[np.int32] = np.zeros(1, dtype=np.int32)
+        self._propagations: List[Propagation] = list()
+
+    @property
+    def propagations(self) -> List[Propagation]:
+        if len(self._propagations) == 0:
+            raise Exception("Propagations not calculated (call TransientResult.find_propagations first)")
+        
+        return self._propagations
     
     @property
     def transitions(self) -> List[List[Transition]]:
@@ -167,7 +178,7 @@ class TransientResult:
         self._interval_start_idxs = start_timestamp_idxs
         self._interval_end_idxs = end_timestamp_idxs
 
-    def find_propagations(self, LOGIC_THRESHOLD: float = 0.5):
+    def find_propagations(self, LOGIC_THRESHOLD: float = 0.5) -> None:
         propagations: List[Propagation] = list()
         for idx, timestep_transitions in enumerate(self.transitions):
             if len(timestep_transitions) < 2:
@@ -194,8 +205,9 @@ class TransientResult:
                             input_transition.interval
                         )
                     )
-            
-        return propagations
+        
+        self._propagations = propagations
+        # return propagations
 
     def interpolate_transition_timestamp(self, LOGIC_THRESHOLD: float, transition: Transition) -> float:
         sweep_start_timestamp: np.int32 = self.interval_start_idxs[transition.interval]
@@ -254,3 +266,37 @@ class TransientResultSpecification:
                 output_waveforms.append(waveform)
             
         return TransientResult(input_waveforms, output_waveforms, name=name)
+
+def average_propagation_delays_by_category(propagations: List[Propagation]) -> Dict[str, Tuple[float, float]]:
+    propagation_dictionary: Dict[str, Tuple[List[Propagation], List[Propagation]]] = dict()
+    averages: Dict[str, Tuple[float, float]] = dict()
+    for propagation in propagations:
+        label = propagation.type_label()
+        if label not in propagation_dictionary.keys():
+            propagation_dictionary[label] = ([], [])
+
+        if propagation.propagation_type == 'Rising':
+            propagation_dictionary[label][0].append(propagation)
+        else:
+            propagation_dictionary[label][1].append(propagation)
+    
+    for category in propagation_dictionary.keys():
+        rising_propagations, falling_propagations = propagation_dictionary[category]
+        if len(rising_propagations) == 0 or len(falling_propagations) == 0:
+            continue
+
+        average_rising_delay: float = 0
+        for rising_propagation in rising_propagations:
+            average_rising_delay += rising_propagation.delay
+        
+        average_rising_delay /= len(rising_propagations)
+
+        average_falling_delay: float = 0
+        for falling_propagation in falling_propagations:
+            average_falling_delay += falling_propagation.delay
+        
+        average_falling_delay /= len(falling_propagations)
+
+        averages[category] = (average_rising_delay, average_falling_delay)
+    
+    return averages
