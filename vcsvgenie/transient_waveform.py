@@ -56,7 +56,7 @@ class TransientResult:
             for title in self.inputs:
                 plt.figure()
                 plt.plot(self.timestamps, self.inputs[title])
-                plt.xlabel("Timestamp (ns)")
+                plt.xlabel("Timestamp (s)")
                 plt.ylabel("Voltage (V)")
                 plt.title(f"{self.name} {title}")
                 plt.grid(visible=True, which='both', axis='both')
@@ -69,7 +69,7 @@ class TransientResult:
             for title in self.outputs:
                 plt.figure()
                 plt.plot(self.timestamps, self.inputs[title], 'r')
-                plt.xlabel("Timestamp (ns)")
+                plt.xlabel("Timestamp (s)")
                 plt.ylabel("Voltage (V)")
                 plt.title(f"{self.name} {title}")
                 plt.grid(visible=True, which='both', axis='both')
@@ -78,6 +78,9 @@ class TransientResult:
                 else:
                     plt.savefig(f"TransientResult__plot {self.name}_{title.replace('/', '_')}.png")
                     plt.close()
+
+    def find_propagations(timestep_s: 1e-9):
+        pass
         
 def construct_waveforms(waveform_dataframe: DataFrame, titles: List[str]) -> List[WaveForm]:
     waveforms: List[WaveForm] = list()
