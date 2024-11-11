@@ -25,6 +25,19 @@ pip install -e .
 
 Example files can be seen in `vcsvgenie/_dev`.
 
+**Remark**: In order for VCSV genie to automatically parse your file for propagations, you need to specify which signals are 'outputs' and which signals are inputs. 
+- Signals must be 'outputs' for propagation delay calculations to be performed on them with respect to inputs.
+- Within Virtuoso Schematics/Layouts, these signals may be inputOutput or intermediate.
+
+To specify which signals are inputs/outputs, supply lists of signal names to the `input` and `output` constructor arguments for `TransientResultSpecification`. (See Usage for an example).)
+
+## Functionality
+
+VCSV Genie is presently limited to processing VCSV files produced from transient simulaitons in Cadence Virtuoso. Users can:
+- Create pandas dataframes from VCSV files
+- Create $(x, y)$ dataseries of individual waveforms (note that all timestamp $x$ vectors are the same in a VCSV file, and are not uniformly spaced)
+- Create collections of waveforms from specifications (`vcsvgenie.transient_waveform.TransientResult`) 
+
 ## Usage
 
 ```python
