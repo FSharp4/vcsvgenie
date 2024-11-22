@@ -654,3 +654,22 @@ def maximum_propagation_delays_by_category(
         maxima[category] = (maximum_rising_propagation, maximum_falling_propagation)
 
     return maxima
+
+def critical_propagation_delays(propagations: List[Propagation]) -> Tuple[Propagation, Propagation]:
+    maximum_rising_delay: float = 0
+    rising_blame: Propagation
+    maximum_falling_delay: float = 0
+    falling_blame: Propagation
+    if len(propagations) == 0:
+        raise Exception("No propagations registered")
+    
+    for propagation in propagations:
+        if propagation.propagation_type == "Rising":
+            if propagation.delay > maximum_rising_delay:
+                maximum_rising_delay = propagation.delay
+                rising_blame = propagation
+        elif propagation.delay > maximum_falling_delay:
+            maximum_falling_delay = propagation.delay
+            falling_blame = propagation
+
+    return rising_blame, falling_blame
