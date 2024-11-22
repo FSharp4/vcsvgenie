@@ -86,4 +86,5 @@ results.plot(separate=True)
 - numpy
 - matplotlib
 - pandas
+- sortedcontainers
 - (optional): jupyter
