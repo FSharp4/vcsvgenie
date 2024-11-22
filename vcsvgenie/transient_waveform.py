@@ -58,7 +58,7 @@ class Propagation:
         return f"{self.source} -> {self.destination}"
     
     def __str__(self) -> str:
-        return f"[i={self.interval}] {self.source} -> {self.destination}: {self.delay}"
+        return f"[i={self.interval}] {self.source} -> {self.destination} ({self.propagation_type}): {self.delay}"
 
 
 class TransientResult:
@@ -673,3 +673,18 @@ def critical_propagation_delays(propagations: List[Propagation]) -> Tuple[Propag
             falling_blame = propagation
 
     return rising_blame, falling_blame
+
+def quasicritical_propagation_delays(propagations: List[Propagation], samples) -> Tuple[Propagation, ...]:
+    sorted_delays = sorted(propagations, key = lambda propagation: propagation.delay)
+    return sorted_delays[-samples:]
+
+def extract_paths(propagations: List[Propagation]) -> List[Tuple[str, str]]:
+    unique_paths: List[Tuple[str, str]] = []
+    for propagation in propagations:
+        path = (propagation.source, propagation.destination)
+        if path in unique_paths:
+            continue
+
+        unique_paths.append(path)
+
+    return unique_paths
