@@ -9,6 +9,8 @@ Install via `pip`:
 pip install vcsvgenie
 ```
 
+> https://pypi.org/project/vcsvgenie/
+
 ## Installation from source
 
 1. Clone this repo
