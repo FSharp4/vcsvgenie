@@ -4,6 +4,13 @@ This repo details methods for parsing transient simulation VCSV files from Caden
 
 ## Installation
 
+Install via `pip`:
+```bash
+pip install vcsvgenie
+```
+
+## Installation from source
+
 1. Clone this repo
 ```bash
 git clone https://github.com/FSharp4/vcsvgenie.git
