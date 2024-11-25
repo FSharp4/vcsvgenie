@@ -4,6 +4,15 @@ This repo details methods for parsing transient simulation VCSV files from Caden
 
 ## Installation
 
+Install via `pip`:
+```bash
+pip install vcsvgenie
+```
+
+> https://pypi.org/project/vcsvgenie/
+
+## Installation from source
+
 1. Clone this repo
 ```bash
 git clone https://github.com/FSharp4/vcsvgenie.git
@@ -39,6 +48,7 @@ VCSV Genie is presently limited to processing VCSV files produced from transient
 - Create collections of waveforms from specifications (`vcsvgenie.transient_waveform.TransientResult`) 
 - Recognize signal buses using caret notation (i.e., A<3:0>) by specifying the individual signals in the `TransientResultSpecification`
 - Digitize and tabulate signal bus data
+- Identify and measure critical path(s) propagation delay(s) via `vcsvgenie.transient_waveform.critical_propagation_delays` and `quasicritical_propagation_delays`
 
 ## Usage
 
