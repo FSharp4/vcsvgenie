@@ -42,6 +42,8 @@ VCSV Genie is presently limited to processing VCSV files produced from transient
 
 ## Usage
 
+**General Example**:
+
 ```python
 from pathlib import Path
 from pprint import pprint
@@ -79,6 +81,25 @@ bus_data = results.tabulate_bus_data()
 bus_data.to_csv("bus_data.csv")
 
 results.plot(separate=True)
+```
+
+**Retrieving observed worst-case delays**:
+
+```python
+from pprint import pprint
+
+n = 10 # delays to retrieve
+quasicritical_delays = transient_waveform.quasicritical_propagation_delays(results.propagations, n)
+pprint([str(quasicritical) for quasicritical in quasicriticals])
+```
+
+**Estimating global worst-case delays (in simulations on random inputs)**:
+
+```python
+maxtpd_idx, maxtpd = transient_waveform.find_max_delay_trend(results.delays)
+transient_waveform.plot_max_delay_trend(maxtpd_idx, maxtpd, show=True)
+
+global_estimation = transient_waveform.estimate_global_critical_delay(maxtpd_idx, maxtpd, thres_samp=thres_samp)
 ```
 
 ## Dependencies
