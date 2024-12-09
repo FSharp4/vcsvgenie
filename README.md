@@ -80,11 +80,11 @@ results.find_transitions()
 results.find_propagations()
 
 averages = average_propagation_delays_by_category(results.propagations)
-pprint(results.propagations)
-pprint(averages)
+# pprint(results.propagations)
+# pprint(averages)
 
 maxima = maximum_propagation_delays_by_category(results.propagations)
-pprint(maxima)
+# pprint(maxima)
 
 results.digitize()
 results.resolve_buses()
@@ -99,9 +99,9 @@ results.plot(separate=True)
 ```python
 from pprint import pprint
 
-n = 10 # delays to retrieve
+n = 10 # number of delays to retrieve
 quasicritical_delays = transient_waveform.quasicritical_propagation_delays(results.propagations, n)
-pprint([str(quasicritical) for quasicritical in quasicriticals])
+pprint([str(quasicritical) for quasicritical in quasicritical_delays])
 ```
 
 **Estimating global worst-case delays (in simulations on random inputs)**:
