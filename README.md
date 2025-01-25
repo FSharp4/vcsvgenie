@@ -43,7 +43,7 @@ To specify which signals are inputs/outputs, supply lists of signal names to the
 ## Functionality
 
 VCSV Genie is presently limited to processing VCSV files produced from transient simulaitons in Cadence Virtuoso. Users can:
-- Create pandas dataframes from VCSV files
+- Create pandas dataframes or numpy arrays from VCSV files
 - Create $(x, y)$ dataseries of individual waveforms (note that all timestamp $x$ vectors are the same in a VCSV file, and are not uniformly spaced)
 - Create collections of waveforms from specifications (`vcsvgenie.transient_waveform.TransientResult`) 
 - Recognize signal buses using caret notation (i.e., A<3:0>) by specifying the individual signals in the `TransientResultSpecification`
