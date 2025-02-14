@@ -143,6 +143,28 @@ class TransientResult:
             )
 
         return self._transitions
+    
+    def propagations_by_interval(self) -> List[List[Propagation]]:
+        propagations = self.propagations
+        interval_propagations: List[List[Propagation]] = [[] for _ in range(self.n_intervals)]
+
+        
+        for propagation in propagations:
+            interval_propagations[propagation.interval].append(propagation)
+        
+        return interval_propagations
+    
+    def max_delay_by_interval(self) -> NDArray[np.float64]:
+        interval_propagations = self.propagations_by_interval()
+        max_delays = np.zeros(self.n_intervals, dtype=np.float64)
+        for idx, propagations in enumerate(interval_propagations):
+            if len(propagations) == 0:
+                continue
+            
+            max_delays[idx] = max([propagation.delay for propagation in propagations])
+        
+        return max_delays
+
 
     @property
     def interval_start_idxs(self) -> NDArray[np.int64]:
