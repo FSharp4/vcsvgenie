@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from sklearn.linear_model import LinearRegression
 from typing import Dict, List, Literal, Tuple
@@ -41,6 +42,9 @@ class Transition:
     series: str
     series_type: Literal["Input", "Output"]
     interval: int
+    transition_time: float
+    low_threshold: float = 0.1
+    high_threshold: float = 0.9
 
     def __str__(self) -> str:
         return f"i={self.interval} [{self.series_type}] {self.series} {self.transition_type} transition observed"
@@ -58,24 +62,28 @@ class Propagation:
 
     def type_label(self) -> str:
         return f"{self.source} -> {self.destination}"
-    
+
     def __str__(self) -> str:
         return f"[i={self.interval}] {self.source} -> {self.destination} ({self.propagation_type}): {self.delay}"
 
 
 class TransientResult:
     def __init__(
-        self,
-        inputs: List[WaveForm],
-        outputs: List[WaveForm],
-        name: str = "Transient Results",
-        input_bus_dict: Dict[str, Bus] = {},
-        output_bus_dict: Dict[str, Bus] = {},
-        clock_period: float = 1e-9,
-        logic_threshold: float = 0.5,
-        absolute_bus_bits: bool = True,
-        bus_display_radix: Literal["Unsigned Decimal"] = "Unsigned Decimal",
+            self,
+            inputs: List[WaveForm],
+            outputs: List[WaveForm],
+            name: str = "Transient Results",
+            input_bus_dict: Dict | None = None,
+            output_bus_dict: Dict | None = None,
+            clock_period: float = 1e-9,
+            logic_threshold: float = 0.5,
+            absolute_bus_bits: bool = True,
+            bus_display_radix: Literal["Unsigned Decimal"] = "Unsigned Decimal",
     ):
+        if output_bus_dict is None:
+            output_bus_dict = {}
+        if input_bus_dict is None:
+            input_bus_dict = {}
         self.timestamps = inputs[0].x
         self.inputs: Dict[str, NDArray[np.float64]] = dict()
         self.outputs: Dict[str, NDArray[np.float64]] = dict()
@@ -83,11 +91,11 @@ class TransientResult:
         self.output_bus_spec = output_bus_dict
         self.absolute_bus_bits = absolute_bus_bits
         self.bus_display_radix = bus_display_radix
-        for input in inputs:
-            if not np.allclose(input.x, self.timestamps):
+        for _input in inputs:
+            if not np.allclose(_input.x, self.timestamps):
                 raise ArithmeticError("Waveform Timestamps are not aligned")
 
-            self.inputs[input.title] = input.y
+            self.inputs[_input.title] = _input.y
 
         for output in outputs:
             if not np.allclose(output.x, self.timestamps):
@@ -120,18 +128,18 @@ class TransientResult:
             )
 
         return self._propagations
-    
+
     @property
     def delays(self) -> NDArray[np.float64]:
         return np.array([propagation.delay for propagation in self.propagations], dtype=np.float64)
-    
+
     @property
     def sorted_delays(self) -> NDArray[np.float64]:
         return np.array(
             [
                 propagation.delay for propagation in sorted(
-                    self.propagations, key = lambda propagation: propagation.delay
-                )
+                self.propagations, key=lambda propagation: propagation.delay
+            )
             ], dtype=np.float64
         )
 
@@ -143,28 +151,26 @@ class TransientResult:
             )
 
         return self._transitions
-    
+
     def propagations_by_interval(self) -> List[List[Propagation]]:
         propagations = self.propagations
         interval_propagations: List[List[Propagation]] = [[] for _ in range(self.n_intervals)]
 
-        
         for propagation in propagations:
             interval_propagations[propagation.interval].append(propagation)
-        
+
         return interval_propagations
-    
+
     def max_delay_by_interval(self) -> NDArray[np.float64]:
         interval_propagations = self.propagations_by_interval()
         max_delays = np.zeros(self.n_intervals, dtype=np.float64)
         for idx, propagations in enumerate(interval_propagations):
             if len(propagations) == 0:
                 continue
-            
-            max_delays[idx] = max([propagation.delay for propagation in propagations])
-        
-        return max_delays
 
+            max_delays[idx] = max([propagation.delay for propagation in propagations])
+
+        return max_delays
 
     @property
     def interval_start_idxs(self) -> NDArray[np.int64]:
@@ -185,7 +191,7 @@ class TransientResult:
         return self._interval_end_idxs
 
     def plot(
-        self, save: bool = False, display: bool = True, separate: bool = False
+            self, save: bool = False, display: bool = True, separate: bool = False
     ) -> None:
         if not display and not save:
             warn(
@@ -239,7 +245,8 @@ class TransientResult:
                     )
                     plt.close()
 
-    def find_transitions(self, eps_n_timestamps: int = 1) -> None:
+    def find_transitions(self, eps_n_timestamps: int = 1, low_threshold: float = 0.1,
+                         high_threshold: float = 0.9) -> None:
         self.eps_n_timestamps = eps_n_timestamps
         ending_timestamp = self.timestamps[-1]
 
@@ -253,9 +260,48 @@ class TransientResult:
                 self.timestamps, start, side="right"
             )
             end_timestamp_idxs[n] = (
-                np.searchsorted(self.timestamps, end, side="right") - eps_n_timestamps
+                    np.searchsorted(self.timestamps, end, side="right") - eps_n_timestamps
             )
             transitions.append([])
+
+        def process_transition(
+            _idx: int,
+            _start_timestamp_idxs: NDArray[np.int64],
+            _end_timestamp_idxs: NDArray[np.int64]
+        ) -> Tuple[Literal["Rising", "Falling"], float]:
+            interval_data = data[_start_timestamp_idxs[_idx]:_end_timestamp_idxs[_idx]]
+            _transition_type: Literal["Rising", "Falling"] = "Rising" if ends_data[_idx] else "Falling"
+
+            def prep_interpolation(pivot_idx: int, threshold) -> float:
+                increment = -1 if _transition_type == "Rising" else 1
+                x1: float = float(self.timestamps[_start_timestamp_idxs[_idx] + pivot_idx])
+                x0: float = float(self.timestamps[_start_timestamp_idxs[_idx] + pivot_idx - 1])
+                y0: float = float(data[_start_timestamp_idxs[_idx] + pivot_idx - 1])
+                y1: float = float(data[_start_timestamp_idxs[_idx] + pivot_idx])
+                timestamp = linear_interpolation(x0, x1, y0, y1, threshold, 'y')
+                return timestamp
+
+            def extract_transition_time(_low_idx: int, _high_idx: int) -> float:
+                low_timestamp = self.timestamps[_low_idx + _start_timestamp_idxs[_idx]]
+                if _low_idx > 0:
+                    low_timestamp = prep_interpolation(_low_idx, low_threshold)
+
+                high_timestamp = self.timestamps[_high_idx + _start_timestamp_idxs[_idx]]
+                if _high_idx > 0:
+                    high_timestamp = prep_interpolation(_high_idx, high_threshold)
+
+                __transition_time = high_timestamp - low_timestamp
+                return __transition_time
+
+            if _transition_type == "Rising":
+                low_idx: int = int(np.where(interval_data > low_threshold)[0][0])
+                high_idx: int = int(np.where(interval_data > high_threshold)[0][0])
+            else:  # Falling
+                high_idx: int = int(np.where(interval_data < high_threshold)[0][0])
+                low_idx: int = int(np.where(interval_data < low_threshold)[0][0])
+
+            _transition_time: float = extract_transition_time(low_idx, high_idx)
+            return _transition_type, _transition_time
 
         for input_series in self.inputs.keys():
             data = self.inputs[input_series]
@@ -265,8 +311,17 @@ class TransientResult:
             check_transitioned = ends_data != starts_data
             for idx, did_transition in enumerate(check_transitioned):
                 if did_transition:
-                    transition_type = "Rising" if ends_data[idx] else "Falling"
-                    transition = Transition(transition_type, input_series, "Input", idx)
+                    transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
+                    transition = Transition(
+                        transition_type,
+                        input_series,
+                        "Input",
+                        idx,
+                        transition_time,
+                        low_threshold=low_threshold,
+                        high_threshold=high_threshold
+                    )
+
                     transitions[idx].append(transition)
 
         for output_series in self.outputs.keys():
@@ -277,9 +332,15 @@ class TransientResult:
             check_transitioned = ends_data != starts_data
             for idx, did_transition in enumerate(check_transitioned):
                 if did_transition:
-                    transition_type = "Rising" if ends_data[idx] else "Falling"
+                    transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
                     transition = Transition(
-                        transition_type, output_series, "Output", idx
+                        transition_type,
+                        output_series,
+                        "Output",
+                        idx,
+                        transition_time,
+                        low_threshold=low_threshold,
+                        high_threshold=high_threshold
                     )
                     transitions[idx].append(transition)
 
@@ -315,7 +376,7 @@ class TransientResult:
                         self.LOGIC_THRESHOLD, output_transition
                     )
                     propagation_delay = (
-                        output_transition_timestamp - input_transition_timestamp
+                            output_transition_timestamp - input_transition_timestamp
                     )
                     propagations.append(
                         Propagation(
@@ -376,13 +437,13 @@ class TransientResult:
             powers = input_bus.powers
             if self.absolute_bus_bits == False:
                 powers = list(range(len(powers) - 1, -1, -1))
-            
+
             self.input_bus_values[bus_name] = np.zeros((self.n_intervals), dtype=np.int64)
             for interval in range(self.n_intervals):
                 value: int = 0
                 for idx, signal in enumerate(signals):
                     value += self.digital_inputs[signal][interval] * (1 << powers[idx])
-                
+
                 self.input_bus_values[bus_name][interval] = value
 
         for bus_name in self.output_bus_spec:
@@ -391,13 +452,13 @@ class TransientResult:
             powers = output_bus.powers
             if self.absolute_bus_bits == False:
                 powers = list(range(len(powers) - 1, -1, -1))
-            
+
             self.output_bus_values[bus_name] = np.zeros((self.n_intervals), dtype=np.int64)
             for interval in range(self.n_intervals):
                 value: int = 0
                 for idx, signal in enumerate(signals):
                     value += self.digital_outputs[signal][interval] * (1 << powers[idx])
-                
+
                 self.output_bus_values[bus_name][interval] = value
 
     def tabulate_bus_data(self):
@@ -406,22 +467,20 @@ class TransientResult:
         table = pd.concat([input_table, output_table], axis=1)
         return table
 
-        
-
     def interpolate_transition_timestamp(
-        self, LOGIC_THRESHOLD: float, transition: Transition
+            self, LOGIC_THRESHOLD: float, transition: Transition
     ) -> float:
         sweep_start_timestamp: np.int64 = self.interval_start_idxs[transition.interval]
         sweep_end_timestamp: np.int64 = self.interval_end_idxs[transition.interval] + 1
         data_interval: NDArray[np.float64]
         if transition.series_type == "Input":
             data_interval = self.inputs[transition.series][
-                sweep_start_timestamp:sweep_end_timestamp
-            ]
+                            sweep_start_timestamp:sweep_end_timestamp
+                            ]
         else:
             data_interval = self.outputs[transition.series][
-                sweep_start_timestamp:sweep_end_timestamp
-            ]
+                            sweep_start_timestamp:sweep_end_timestamp
+                            ]
 
         check_transitioned = data_interval > LOGIC_THRESHOLD
         if check_transitioned[0]:
@@ -444,9 +503,9 @@ class TransientResult:
 
 
 def find_transitions(
-    transient_result: TransientResult,
-    timestep: float = 1e-9,
-    eps_n_timestamps: int = 10,
+        transient_result: TransientResult,
+        timestep: float = 1e-9,
+        eps_n_timestamps: int = 10,
 ) -> List[List[Transition]]:
     transient_result.find_transitions(
         timestep=timestep, eps_n_timestamps=eps_n_timestamps
@@ -455,7 +514,7 @@ def find_transitions(
 
 
 def construct_waveforms(
-    waveform_dataframe: DataFrame, titles: List[str]
+        waveform_dataframe: DataFrame, titles: List[str]
 ) -> List[WaveForm]:
     waveforms: List[WaveForm] = list()
     for idx, title in enumerate(titles):
@@ -478,13 +537,13 @@ class BusValidationException(Exception):
 class TransientResultSpecification:
 
     def __init__(
-        self,
-        inputs: List[str],
-        outputs: List[str],
-        input_buses: Dict[str, Bus] | None = None,
-        output_buses: Dict[str, Bus] | None = None,
-        logic_threshold: float = 0.5,
-        clock_period: float = 1e-9,
+            self,
+            inputs: List[str],
+            outputs: List[str],
+            input_buses: Dict[str, Bus] | None = None,
+            output_buses: Dict[str, Bus] | None = None,
+            logic_threshold: float = 0.5,
+            clock_period: float = 1e-9,
     ):
         self.inputs = inputs
         self.outputs = outputs
@@ -614,7 +673,7 @@ class TransientResultSpecification:
 
 
 def average_propagation_delays_by_category(
-    propagations: List[Propagation],
+        propagations: List[Propagation],
 ) -> Dict[str, Tuple[float, float]]:
     propagation_dictionary: Dict[str, Tuple[List[Propagation], List[Propagation]]] = (
         dict()
@@ -651,6 +710,7 @@ def average_propagation_delays_by_category(
 
     return averages
 
+
 def maximum_propagation_delays_by_category(
         propagations: List[Propagation],
 ) -> Dict[str, Tuple[Propagation, Propagation]]:
@@ -680,7 +740,6 @@ def maximum_propagation_delays_by_category(
                 maximum_rising_delay = rising_propagation.delay
                 maximum_rising_propagation = rising_propagation
 
-
         maximum_falling_delay: float = falling_propagations[0].delay
         maximum_falling_propagation: Propagation = falling_propagations[0]
         for falling_propagation in falling_propagations:
@@ -693,6 +752,7 @@ def maximum_propagation_delays_by_category(
 
     return maxima
 
+
 def critical_propagation_delays(propagations: List[Propagation]) -> Tuple[Propagation, Propagation]:
     maximum_rising_delay: float = 0
     rising_blame: Propagation
@@ -700,7 +760,7 @@ def critical_propagation_delays(propagations: List[Propagation]) -> Tuple[Propag
     falling_blame: Propagation
     if len(propagations) == 0:
         raise Exception("No propagations registered")
-    
+
     for propagation in propagations:
         if propagation.propagation_type == "Rising":
             if propagation.delay > maximum_rising_delay:
@@ -712,9 +772,11 @@ def critical_propagation_delays(propagations: List[Propagation]) -> Tuple[Propag
 
     return rising_blame, falling_blame
 
+
 def quasicritical_propagation_delays(propagations: List[Propagation], samples) -> Tuple[Propagation, ...]:
-    sorted_delays = sorted(propagations, key = lambda propagation: propagation.delay)
+    sorted_delays = sorted(propagations, key=lambda propagation: propagation.delay)
     return sorted_delays[-samples:]
+
 
 def extract_paths(propagations: List[Propagation]) -> List[Tuple[str, str]]:
     unique_paths: List[Tuple[str, str]] = []
@@ -727,10 +789,11 @@ def extract_paths(propagations: List[Propagation]) -> List[Tuple[str, str]]:
 
     return unique_paths
 
+
 def delay_histogram(delays: NDArray[np.float64], n_bins: int = 100, show=False) -> Figure:
     hist, bins = np.histogram(delays, bins=n_bins)
     bin_centers = (bins[1:] + bins[:-1]) * 0.5
-    
+
     figure: Figure = plt.figure()
     plt.plot(bin_centers, hist)
     plt.xlabel("Propagation delay (s)")
@@ -741,6 +804,7 @@ def delay_histogram(delays: NDArray[np.float64], n_bins: int = 100, show=False) 
         plt.show()
     return figure
 
+
 def find_max_delay_trend(delays: NDArray[np.float64]) -> Tuple[NDArray[np.int64], NDArray[np.float64]]:
     max_delay_trend: List[np.float64] = [delays[0]]
     max_delay_idxes: List[np.int64] = [0]
@@ -748,8 +812,9 @@ def find_max_delay_trend(delays: NDArray[np.float64]) -> Tuple[NDArray[np.int64]
         if delay > max_delay_trend[-1]:
             max_delay_trend.append(delay)
             max_delay_idxes.append(idx)
-    
+
     return np.array(max_delay_idxes, dtype=np.int64), np.array(max_delay_trend, dtype=np.float64)
+
 
 def plot_max_delay_trend(max_delay_idxes: NDArray[np.int64], max_delay_trend: NDArray[np.float64], show=False):
     figure = plt.figure()
@@ -762,7 +827,9 @@ def plot_max_delay_trend(max_delay_idxes: NDArray[np.int64], max_delay_trend: ND
         plt.show()
     return figure
 
-def plot_inverse_max_delay_trend(max_delay_idxes: NDArray[np.int64], max_delay_trend: NDArray[np.float64], show=False) -> Figure:
+
+def plot_inverse_max_delay_trend(max_delay_idxes: NDArray[np.int64], max_delay_trend: NDArray[np.float64],
+                                 show=False) -> Figure:
     figure: Figure = plt.figure()
     plt.plot(1 / np.array(max_delay_idxes, np.float64), max_delay_trend, linestyle='--', marker='o')
     plt.title("Maximum delay trend over (# of propagation delays)^-1")
@@ -773,9 +840,12 @@ def plot_inverse_max_delay_trend(max_delay_idxes: NDArray[np.int64], max_delay_t
         plt.show()
     return figure
 
-def linear_regression_intercept(invns: NDArray[np.float64], trend: NDArray[np.float64], INV_THRESH: np.float64 = 0) -> np.float64:
+
+def linear_regression_intercept(invns: NDArray[np.float64], trend: NDArray[np.float64],
+                                INV_THRESH: np.float64 = 0) -> np.float64:
     reg = LinearRegression().fit((invns).reshape(-1, 1), trend)
     return np.float64(reg.predict(np.array(INV_THRESH).reshape(-1, 1))[0])
+
 
 @dataclass
 class DelayPredictionTrend:
@@ -785,19 +855,20 @@ class DelayPredictionTrend:
     @property
     def inv_idxes(self) -> NDArray[np.float64]:
         return 1 / np.array(self.idxes, dtype=np.float64)
-    
+
+
 def maximal_delay_prediction_trend(
-        ns: NDArray[np.int32], 
-        invns: NDArray[np.float64], 
-        trend: NDArray[np.float64], 
-        thres_samp = 3, 
+        ns: NDArray[np.int32],
+        invns: NDArray[np.float64],
+        trend: NDArray[np.float64],
+        thres_samp=3,
         INV_THRESH: np.float64 = 0) -> DelayPredictionTrend:
     prediction_idxes: List[np.int32] = list()
     prediction_trend: List[np.float64] = list()
-    
+
     if len(invns) < thres_samp + 2:
         return np.array(linear_regression_intercept(invns[1:], trend[1:], INV_THRESH=INV_THRESH))
-    
+
     for i in range(thres_samp + 1, len(invns)):
         j = i - thres_samp
         window_invns = invns[j:i]
@@ -805,17 +876,47 @@ def maximal_delay_prediction_trend(
         prediction = linear_regression_intercept(window_invns, window_trend, INV_THRESH=INV_THRESH)
         prediction_idxes.append(ns[i])
         prediction_trend.append(prediction)
-    
-    return DelayPredictionTrend(np.array(prediction_idxes, dtype=np.int32), np.array(prediction_trend, dtype=np.float64))
-    
+
+    return DelayPredictionTrend(np.array(prediction_idxes, dtype=np.int32),
+                                np.array(prediction_trend, dtype=np.float64))
+
+
 def estimate_global_critical_delay(
-    max_delay_idxes: NDArray[np.int64], 
-    max_delay_trend: NDArray[np.float64],
-    thres_samp: int = 3,
-    INV_THRESH: np.float64 = 0
+        max_delay_idxes: NDArray[np.int64],
+        max_delay_trend: NDArray[np.float64],
+        thres_samp: int = 3,
+        INV_THRESH: np.float64 = 0
 ) -> np.float64:
     last_trend = max_delay_trend[-thres_samp:]
     last_idxes = max_delay_idxes[-thres_samp:]
     last_inv_idxes = 1 / np.array(last_idxes, dtype=np.float64)
     prediction = linear_regression_intercept(last_inv_idxes, last_trend, INV_THRESH=INV_THRESH)
     return prediction
+
+def linear_interpolation(
+        x_initial: float,
+        x_final: float,
+        y_initial: float,
+        y_final: float,
+        threshold: float,
+        threshold_axis: Literal['x', 'y']
+) -> float:
+    if threshold_axis == 'x':
+        primary_initial = x_initial
+        primary_final = x_final
+        secondary_initial = y_initial
+        secondary_final = y_final
+    else:
+        primary_initial = y_initial
+        primary_final = y_final
+        secondary_initial = x_initial
+        secondary_final = x_final
+
+    if not (min(primary_initial, primary_final) <= threshold <= max(primary_initial, primary_final)):
+        raise ArithmeticError(
+            f"Extrapolative threshold: Initial = {primary_initial}, Final = {primary_final}, Threshold = {threshold}"
+        )
+
+    proportion = (threshold - primary_initial) / (primary_final - primary_initial)
+    interpolated_secondary = proportion * (secondary_final - secondary_initial) + secondary_initial
+    return interpolated_secondary
