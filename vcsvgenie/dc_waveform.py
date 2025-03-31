@@ -8,12 +8,21 @@ from vcsvgenie.waveform import WaveForm
 
 
 class DCResult:
-
+    """
+    Harness class for future DC Analysis attributes and methods.
+    Right now, this doesn't do much. There's a subclass for SRAM read analysis.
+    """
     def __init__(
             self,
             signals: List[WaveForm],
             name: str = "DC Results",
     ):
+        """
+        Iniitalizes the DCResults object.
+        The signals passed to this method will be processed (the waveform points will be sorted by x series)
+        :param signals: List of waveforms (ostensibly defined from DCResultSpecification)
+        :param name: Name of the result
+        """
         self.signals: Dict[str, WaveForm] = dict()
         for signal in signals:
             x = signal.x
@@ -23,13 +32,27 @@ class DCResult:
             self.signals[signal.title] = WaveForm(sorted_x, sorted_y, signal.title)
 
 class DCResultSpecification:
+    """
+    Specification class for DCResults.
+    May be extended in future versions.
+    """
     def __init__(
             self,
             signals: List[str]
     ):
+        """
+        Initializes the DCResultSpecification object.
+        :param signals: List of waveform titles to include in spec
+        """
         self.signals = signals
 
     def interpret(self, waveforms: List[WaveForm], name: str = "DC Results") -> DCResult:
+        """
+        Interprets a list of waveforms into a DCResult object.
+        :param waveforms: List of waveforms to select from. (Might be a superset of intended selection)
+        :param name: Name of the DCResult
+        :return: A DCResult containing the waveforms as specified in this object, named per the argument
+        """
         result_waveforms: List[WaveForm] = list()
         for waveform in waveforms:
             if waveform.title in self.signals:
@@ -37,21 +60,12 @@ class DCResultSpecification:
 
         return DCResult(result_waveforms, name)
 
-def symmetry_axis_projection(w: WaveForm) -> Tuple[NDArray[np.float64], WaveForm]:
-    """
-    Written for RSNM calculation
-    """
-    x = w.x
-    y = w.y
-    v = y - (1 - x)
-    h = x - (1 - y)
-    distance = np.sqrt(np.square(v) + np.square(h))
-    sx = x - h
-    sy = y - v
-    projection = WaveForm(sx, sy, f"proj({w.title})")
-    return distance, projection
-
 def reconcile(w1: WaveForm, w2: WaveForm) -> Tuple[WaveForm, WaveForm]:
+    """
+    Augments a pair of waveforms such that their x axes are identical, allowing direct comparison of points.
+    :param w1: First waveform
+    :param w2: Second waveform
+    """
     y1_p = np.interp(w2.x, w1.x, w1.y)
     y2_p = np.interp(w1.x, w2.x, w2.y)
     x1 = np.append(w1.x, w2.x)
@@ -65,12 +79,23 @@ def reconcile(w1: WaveForm, w2: WaveForm) -> Tuple[WaveForm, WaveForm]:
     return WaveForm(sorted_x1, sorted_y1, w1.title), WaveForm(sorted_x2, sorted_y2, w2.title)
 
 def argfind_intercept(w1: WaveForm, w2: WaveForm) -> int:
+    """
+    Finds the index corresponding to where the intercept point between two waveforms should be inserted.
+    :param w1: First waveform
+    :param w2: Second waveform
+    """
     w1_is_upper = w1.y >= w2.y
     dw1_is_upper = np.bitwise_xor(w1_is_upper[:-1], w1_is_upper[1:])
     transition = int(np.argwhere(dw1_is_upper)[0] + 1)
     return transition
 
 def argfind_eye(w1: WaveForm, w2: WaveForm) -> Tuple[int, int]:
+    """
+    Finds the "eye" in which a Noise Margin measurement (e.g., for SRAM) should be taken
+    :param w1: First waveform
+    :param w2: Second waveform
+    :return: The two indices corresponding to the beginning (inclusive) and the end (exclusive) of the eye
+    """
     w1_is_upper = w1.y >= w2.y
     dw1_is_upper = np.bitwise_xor(w1_is_upper[:-1], w1_is_upper[1:])
     eye_transition = np.argwhere(dw1_is_upper) + 1
@@ -83,13 +108,26 @@ def argfind_eye(w1: WaveForm, w2: WaveForm) -> Tuple[int, int]:
         return int(eye_transition[closest_transition - 1]), int(eye_transition[closest_transition])
 
 def unit_line_through_y_intercept(w: WaveForm, idx: int | NDArray[np.int32]) -> np.float64 | NDArray[np.float64]:
-    """Calculates b for line(s) y = x + b intercepting the waveform w at indexes idx"""
+    """
+    Calculates b for line(s) y = x + b intercepting the waveform w at indexes idx.
+    This is useful for noise margin calculation.
+    :param w: Waveform to reference
+    :param idx: Index(es) of the datapoint(s) for which to find intercepting lines
+    :return: The y-intercept(s) of the unit-slope lines defined by the waveform points (b in y = x + b)
+    """
     x = w.x[idx]
     y = w.y[idx]
     return y - x
 
 
 def cast_onto_unit_line(x: NDArray[np.float64], b: NDArray[np.float64] | np.float64) -> NDArray[np.float64]:
+    """
+    Projects datapoints x onto a unit line y = x + b
+    This is useful for noise margin calculation.
+    :param x: Data points to project
+    :param b: Defines the unit-slope line on which to project the datapoints
+    :return: Projected data
+    """
     if np.isscalar(b):
         return x + b
 
@@ -105,6 +143,16 @@ def linear_intercept(
         p3: Tuple[float, float],
         p4: Tuple[float, float]
 ) -> Tuple[float, float]:
+    """
+    Calculates the point intercept between two line segments.
+    This is useful for noise margin calculation.
+    These line segments should be intersecting already (this code does not check).
+    :param p1: Start point of first line segment
+    :param p2: End point of first line segment
+    :param p3: Start point of second line segment
+    :param p4: End point of second line segment
+    :return: Intercept between two line segments (x, y) as floats
+    """
     l1m = (p2[1] - p1[1]) / (p2[0] - p1[0])
     l1b = p1[1] - l1m * p1[0]
     l2m = (p4[1] - p3[1]) / (p4[0] - p3[0])
@@ -115,7 +163,16 @@ def linear_intercept(
 
 
 class ReadSRAMNoiseMarginResult(DCResult):
+    """
+    Class for calculating the Read SRAM Noise Margin.
+    May be extended in future versions to cover Write and/or Hold Noise margin (if different)
+    """
     def __init__(self, signals: List[WaveForm], name: str = "RSNM Results"):
+        """
+        Initializes the ReadSRAMNoiseMarginResult.
+        :param signals: List of WaveForm objects (ostensibly from spec)
+        :param name: Name of the result
+        """
         if len(signals) != 2:
             raise Exception("This RSNM ResultSpecification class only supports analyzing a pair of signals")
         super().__init__(signals, name)
@@ -126,6 +183,14 @@ class ReadSRAMNoiseMarginResult(DCResult):
         self.square_dim_anchor: int = -1
 
     def truncate(self):
+        """
+        Truncates the underlying waveforms to remove datapoints that both waveforms clearly would not share.
+        (i.e., if one waveform's x-series includes 0.01, 0.02, 0.03, 0.04, 0.05 and the other includes 0.05, ... then
+        the first four points of the first waveform are removed. A similar process happens to the end of the waveforms
+        as well.)
+
+        This function should only be run once. Multiple runs should not have any effect.
+        """
         if self.signal1.x[0] > self.signal2.x[0]:
             start1 = self.signal1.x[0]
             argstart2 = np.searchsorted(self.signal2.x, start1)
@@ -160,9 +225,19 @@ class ReadSRAMNoiseMarginResult(DCResult):
         )
 
     def reconcile(self):
+        """
+        Reconciles the two underlying waveforms so that their x axes include the same points, allowing direct
+        point comparisons.
+
+        Calls the reconcile method from outside the class to do this.
+        """
         self.signal1, self.signal2 = reconcile(self.signal1, self.signal2)
 
     def calculate_square_dim(self) -> Tuple[float, int]:
+        """
+        Calculates the noise margin. This is done by finding the size of the largest square that one can inscribe
+        within the eye defined by the two waveforms within this results object.
+        """
         sidx, fidx = argfind_eye(self.signal1, self.signal2)
         y_intercepts = unit_line_through_y_intercept(self.signal1, np.arange(sidx, fidx))
         unit_line_y_value_array = cast_onto_unit_line(self.signal1.x, y_intercepts)
@@ -203,6 +278,9 @@ class ReadSRAMNoiseMarginResult(DCResult):
         return self.square_dim, self.square_dim_anchor
 
     def plot(self):
+        """
+        Plots the noise margin square over the two waveforms.
+        """
         if self.square_dim == 0:
             self.calculate_square_dim()
 
@@ -233,11 +311,25 @@ class ReadSRAMNoiseMarginResult(DCResult):
 
 
 class ReadSRAMNoiseMarginResultSpecification(DCResultSpecification):
+    """
+    Specification class that extends DCResultSpecification. Narrows the allowed number of
+    result signals to 2.
+    """
     def __init__(self, signals: List[str]):
+        """
+        Instantiates the ReadSRAMNoiseMarginResultSpecification.
+        Accepts a list of two waveform names.
+        """
         assert len(signals) == 2
         super().__init__(signals)
 
     def interpret(self, waveforms: List[WaveForm], name: str = "RSNM Results") -> ReadSRAMNoiseMarginResult:
+        """
+        Interprets the specification to produce a ReadSRAMNoiseMarginResult.
+        :param waveforms: A list of WaveForm objects (that may be a superset of the two signals indicated in the spec).
+        :param name: The name of the resulting ReadSRAMNoiseMarginResult.
+        :return: A ReadSRAMNoiseMarginResult object.
+        """
         result_waveforms: List[WaveForm] = list()
         for waveform in waveforms:
             if waveform.title in self.signals:

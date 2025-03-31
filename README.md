@@ -11,6 +11,27 @@ pip install vcsvgenie
 
 > https://pypi.org/project/vcsvgenie/
 
+## Installation from source (using Poetry)
+
+1. Clone this repo
+
+```bash
+git clone https://github.com/FSharp4/vcsvgenie.git
+cd vcsvgenie
+```
+
+2. Install to an environment
+
+```bash
+# If you haven't installed poetry:
+pip install poetry
+
+# Install project + dependencies to virtual environment
+poetry install
+```
+
+3. Copy over a vcsv file of your choice, and use `vcsvgenie` to process the file, extracting propagation delays, printing traces, etc.
+
 ## Installation from source
 
 1. Clone this repo
@@ -122,3 +143,12 @@ global_estimation = transient_waveform.estimate_global_critical_delay(maxtpd_idx
 - pandas
 - sortedcontainers
 - (optional): jupyter
+
+## Contribution
+
+This code targets python 3.11 syntax.
+
+This codebase follows semver guidelines:
+- Patch versions indicate bug fixes or documentation adjustments with no intentional functionality changes
+- Minor versions indicate functionality changes or additions with no breaking changes
+- Major versions indicate breaking functionality changes
