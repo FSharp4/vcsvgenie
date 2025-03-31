@@ -63,7 +63,9 @@ To specify which signals are inputs/outputs, supply lists of signal names to the
 
 ## Functionality
 
-VCSV Genie is presently limited to processing VCSV files produced from transient simulaitons in Cadence Virtuoso. Users can:
+### Transient Analysis
+
+Users can:
 - Create pandas dataframes or numpy arrays from VCSV files
 - Create $(x, y)$ dataseries of individual waveforms (note that all timestamp $x$ vectors are the same in a VCSV file, and are not uniformly spaced)
 - Create collections of waveforms from specifications (`vcsvgenie.transient_waveform.TransientResult`) 
@@ -71,6 +73,12 @@ VCSV Genie is presently limited to processing VCSV files produced from transient
 - Digitize and tabulate signal bus data
 - Identify and measure critical path(s) propagation delay(s) via `vcsvgenie.transient_waveform.critical_propagation_delays` and `quasicritical_propagation_delays`
 - Estimate global worst-case delays via `vcsvgenie.transient_waveform.estimate_global_critical_delay`
+
+### DC Analysis
+
+Users can:
+- Load waveforms from a DC analysis into a rudimentary DC Results object (no functionality yet)
+- Measure Read SRAM Noise Margin
 
 ## Usage
 
