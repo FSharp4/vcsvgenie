@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vcsvgenie"
-version = "1.2.0"
+version = "2.0.0"
 description = "Programmatic Interpretations of Cadence Virtuoso Waveform VCSV files"
 authors = [
     {name = "Jake Peterson", email = "jake612@duck.com"}
 ]
 readme="README.md"
 dependencies = [
-    "numpy>1.20.0,<2.0.0",
+    "numpy>=2.2.0, <3.0.0",
     "matplotlib>=3.9.0,<4.0.0",
     "pandas>=2.2.0,<3.0.0",
     "scikit-learn>=1.5.0,<2.0.0",
