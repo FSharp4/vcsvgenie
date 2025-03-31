@@ -8,6 +8,9 @@ from pandas import DataFrame
 
 @dataclass
 class WaveForm:
+    """
+    Stores 2D datapoints. Labeled too.
+    """
     x: NDArray[np.float64]
     y: NDArray[np.float64]
     title: str
@@ -16,6 +19,12 @@ class WaveForm:
 def construct_waveforms(
         waveform_dataframe: DataFrame, titles: List[str]
 ) -> List[WaveForm]:
+    """
+    Constructs a list of waveforms from a dataframe and list of titles.
+    :param waveform_dataframe: Dataframe of waveforms
+    :param titles: List of titles
+    :return: List of waveforms taken from the dataframe, titled as they are in the titles list
+    """
     waveforms: List[WaveForm] = list()
     for idx, title in enumerate(titles):
         x, y = waveform_dataframe.iloc[:, 2 * idx].to_numpy(
@@ -34,6 +43,15 @@ def linear_interpolation(
         threshold: float,
         threshold_axis: Literal['x', 'y']
 ) -> float:
+    """
+    Linear interpolation between two points.
+    :param x_initial: Initial x value
+    :param x_final: Final x value
+    :param y_initial: Initial y value
+    :param y_final: Final y value
+    :param threshold: Threshold value on one axis to find the value on the other axis for
+    :param threshold_axis: Threshold value axis (either x or y)
+    """
     if threshold_axis == 'x':
         primary_initial = x_initial
         primary_final = x_final
