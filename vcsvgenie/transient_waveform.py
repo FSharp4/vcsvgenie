@@ -1,4 +1,3 @@
-import math
 from dataclasses import dataclass
 from sklearn.linear_model import LinearRegression
 from typing import Dict, List, Literal, Tuple
@@ -10,6 +9,8 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import DataFrame
+
+from vcsvgenie.waveform import WaveForm, linear_interpolation
 
 
 @dataclass
@@ -27,13 +28,6 @@ class Bus:
             return False
 
         return True
-
-
-@dataclass
-class WaveForm:
-    x: NDArray[np.float64]
-    y: NDArray[np.float64]
-    title: str
 
 
 @dataclass
@@ -513,19 +507,6 @@ def find_transitions(
     return transient_result.transitions
 
 
-def construct_waveforms(
-        waveform_dataframe: DataFrame, titles: List[str]
-) -> List[WaveForm]:
-    waveforms: List[WaveForm] = list()
-    for idx, title in enumerate(titles):
-        x, y = waveform_dataframe.iloc[:, 2 * idx].to_numpy(
-            dtype=np.float64
-        ), waveform_dataframe.iloc[:, 2 * idx + 1].to_numpy(dtype=np.float64)
-        waveform = WaveForm(x, y, title)
-        waveforms.append(waveform)
-    return waveforms
-
-
 class BusValidationException(Exception):
     def __init__(self, bus_title: str, signal_title: str, *args):
         super.__init__(*args)
@@ -893,30 +874,3 @@ def estimate_global_critical_delay(
     prediction = linear_regression_intercept(last_inv_idxes, last_trend, INV_THRESH=INV_THRESH)
     return prediction
 
-def linear_interpolation(
-        x_initial: float,
-        x_final: float,
-        y_initial: float,
-        y_final: float,
-        threshold: float,
-        threshold_axis: Literal['x', 'y']
-) -> float:
-    if threshold_axis == 'x':
-        primary_initial = x_initial
-        primary_final = x_final
-        secondary_initial = y_initial
-        secondary_final = y_final
-    else:
-        primary_initial = y_initial
-        primary_final = y_final
-        secondary_initial = x_initial
-        secondary_final = x_final
-
-    if not (min(primary_initial, primary_final) <= threshold <= max(primary_initial, primary_final)):
-        raise ArithmeticError(
-            f"Extrapolative threshold: Initial = {primary_initial}, Final = {primary_final}, Threshold = {threshold}"
-        )
-
-    proportion = (threshold - primary_initial) / (primary_final - primary_initial)
-    interpolated_secondary = proportion * (secondary_final - secondary_initial) + secondary_initial
-    return interpolated_secondary

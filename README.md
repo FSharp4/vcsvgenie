@@ -60,19 +60,21 @@ from pathlib import Path
 from pprint import pprint
 
 from vcsvgenie.read import read_vcsv
-from vcsvgenie.transient_waveform import TransientResultSpecification, average_propagation_delays_by_category, maximum_propagation_delays_by_category, construct_waveforms
+from vcsvgenie.transient_waveform import TransientResultSpecification, average_propagation_delays_by_category,
+    maximum_propagation_delays_by_category
+from vcsvgenie.waveform import construct_waveforms
 
 path = Path("example.vcsv")
 dataframe, titles = read_vcsv(path)
 waveforms = construct_waveforms(dataframe, titles)
 
 specification = TransientResultSpecification(
-    inputs = [
+    inputs=[
         '/A<3>', '/A<2>', '/A<1>', '/A<0', '/B<3>', '/B<2>', '/B<1>', '/B<0>', 'Clk'
     ],
-    outputs = ['/z<7>', '/z<6>', '/z<5>', '/z<4>', '/z<3>', '/z<2>', '/z<1>', '/z<0>'],
-    clock_period = 1e-9,
-    logic_threshold = 0.5 # volts
+    outputs=['/z<7>', '/z<6>', '/z<5>', '/z<4>', '/z<3>', '/z<2>', '/z<1>', '/z<0>'],
+    clock_period=1e-9,
+    logic_threshold=0.5  # volts
 )
 
 results = specification.interpret(waveforms)
