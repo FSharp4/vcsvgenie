@@ -397,7 +397,7 @@ class WriteSRAMNoiseMarginResult(DCResult):
         """
         y_intercepts = unit_line_through_y_intercept(self.signal1, np.arange(len(self.signal1.x)))
         unit_line_y_value_array = cast_onto_unit_line(self.signal1.x, y_intercepts)
-        square_dim = np.zeros(len(self.signal1.x))
+        square_dim = np.ones(len(self.signal1.x)) * -1
         for idx in range(len(self.signal1.x)):
             if np.isnan(self.signal1.y[idx]):
                 break
@@ -432,8 +432,8 @@ class WriteSRAMNoiseMarginResult(DCResult):
 
             square_dim[idx] = dim
 
-        max_idx = np.argmax(np.abs(square_dim))
-        zeros = np.where(square_dim == 0)[0]
+        max_idx = np.argmax(square_dim)
+        zeros = np.where(square_dim == -1)[0]
         square_dim[zeros] = np.inf
         min_idx = np.argmin(np.abs(square_dim[max_idx:])) + max_idx
         self.square_dim = float(square_dim[min_idx])
