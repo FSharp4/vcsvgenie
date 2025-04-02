@@ -287,9 +287,10 @@ class ReadSRAMNoiseMarginResult(DCResult):
         self.square_dim_anchor = int(max_idx)
         return self.square_dim, self.square_dim_anchor
 
-    def plot(self):
+    def plot(self, save: bool = False):
         """
         Plots the noise margin square over the two read_waveforms.
+        :param save: If true, saves the plot to {self.name}.png
         """
         if self.square_dim == 0:
             self.calculate_square_dim()
@@ -317,6 +318,8 @@ class ReadSRAMNoiseMarginResult(DCResult):
         plt.legend()
         plt.title("RSNM Eye Diagram")
         plt.grid(visible=True, which="both", axis="both")
+        if save:
+            plt.savefig(f"{self.name}.png")
         plt.show()
 
 
@@ -437,9 +440,10 @@ class WriteSRAMNoiseMarginResult(DCResult):
         self.square_dim_anchor = int(min_idx)
         return self.square_dim, self.square_dim_anchor
 
-    def plot(self):
+    def plot(self, save: bool = False):
         """
         Plots the noise margin square over the two read_waveforms.
+        :param save: If true, saves the plot to {self.name}.png
         """
         if self.square_dim == 0:
             self.calculate_square_dim()
@@ -467,6 +471,8 @@ class WriteSRAMNoiseMarginResult(DCResult):
         plt.legend()
         plt.title("WSNM Eye Diagram")
         plt.grid(visible=True, which="both", axis="both")
+        if save:
+            plt.savefig("{self.name}.png")
         plt.show()
 
 class WriteSRAMNoiseMarginResultSpecification(DCResultSpecification):
