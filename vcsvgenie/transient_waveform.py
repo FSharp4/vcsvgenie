@@ -66,7 +66,7 @@ class Transition:
 @dataclass
 class Propagation:
     """
-    Represents a single propagation between two waveforms (one input and one output)
+    Represents a single propagation between two read_waveforms (one input and one output)
     One input waveform that experiences a transition may cause an output waveform to experience a transition shortly
     after.
 
@@ -87,7 +87,7 @@ class Propagation:
     interval: int
 
     def type_label(self) -> str:
-        """Returns a string summary of the propagation (identifying which waveforms are involved)"""
+        """Returns a string summary of the propagation (identifying which read_waveforms are involved)"""
         return f"{self.source} -> {self.destination}"
 
     def __str__(self) -> str:
@@ -113,9 +113,9 @@ class TransientResult:
     ):
         """
         Initializes the TransientResult.
-        :param inputs: The input waveforms
-        :param outputs: The output waveforms
-        :param name: The name of the result
+        :param inputs: The input read_waveforms
+        :param outputs: The output read_waveforms
+        :param name: The name of the read_result
         :param input_bus_dict: A dictionary mapping names of input bus objects to the input bus objects
         :param output_bus_dict: A dictionary mapping names of output bus objects to the output bus objects
         :param clock_period: The clock period (in seconds)
@@ -266,11 +266,11 @@ class TransientResult:
             self, save: bool = False, display: bool = True, separate: bool = False
     ) -> None:
         """
-        Creates a plot of the transient result object.
-        This is more useful for objects that don't include too many waveforms.
+        Creates a plot of the transient read_result object.
+        This is more useful for objects that don't include too many read_waveforms.
         :param save: Whether to save the plot to disk
         :param display: Whether to display the plot immediately
-        :param separate: Whether to separate the waveforms into separate plots
+        :param separate: Whether to separate the read_waveforms into separate plots
         """
         if not display and not save:
             warn(
@@ -327,7 +327,7 @@ class TransientResult:
     def find_transitions(self, eps_n_timestamps: int = 1, low_threshold: float = 0.1,
                          high_threshold: float = 0.9) -> None:
         """
-        Finds all logic transitions in the waveforms
+        Finds all logic transitions in the read_waveforms
         :param eps_n_timestamps: Number of timestamps to subtract from the end of the interval (to remove potential skew issues)
         :param low_threshold: Lower bound of the transitions to produce
         :param high_threshold: Upper bound of the transitions to produce
@@ -576,7 +576,7 @@ class TransientResult:
 
     def tabulate_bus_data(self):
         """
-        Presents all input/output bus data in a pandas dataframe.
+        Presents all input/output bus data in a pandas read_dataframe.
         :return: The tabulated bus data in a DataFrame
         """
         input_table = DataFrame.from_dict(self.input_bus_values)
@@ -659,10 +659,10 @@ class TransientResultSpecification:
         For a surefire workaround, define them as one or the other and do your own work to figure out propagation
         timings where these signals are the other type.
 
-        :param inputs: The input signal titles
-        :param outputs: The output signal titles.
-        :param input_buses: An input bus specification (a dictionary mapping the names of the buses to the buses)
-        :param output_buses: An output bus specification (a dictionary mapping the names fo the buses to the buses)
+        :param inputs: The input signal read_titles
+        :param outputs: The output signal read_titles.
+        :param input_buses: An input bus read_spec (a dictionary mapping the names of the buses to the buses)
+        :param output_buses: An output bus read_spec (a dictionary mapping the names fo the buses to the buses)
         :param logic_threshold: The logic threshold (in Volts)
         :param clock_period: The clock period (in seconds)
         """
@@ -785,9 +785,9 @@ class TransientResultSpecification:
 
     def interpret(self, waveforms: List[WaveForm], name: str = "Transient Results") -> TransientResult:
         """
-        Interprets a collection of waveforms into a TransientResult.
-        :param waveforms: A collection of waveforms to interpret
-        :param name: The name of the result
+        Interprets a collection of read_waveforms into a TransientResult.
+        :param waveforms: A collection of read_waveforms to interpret
+        :param name: The name of the read_result
         :return: A TransientResult
         """
         input_waveforms = []
@@ -824,7 +824,7 @@ def average_propagation_delays_by_category(
 ) -> Dict[str, Tuple[float, float]]:
     """
     Finds the average propagation delay for each category of propagation (i.e., each unique pair of input-output
-    waveforms which saw transitions in the same period).
+    read_waveforms which saw transitions in the same period).
     :param propagations: List of propagations to process
     :return: Dictionary of average propagation delay for each category of propagation
     """
@@ -869,7 +869,7 @@ def maximum_propagation_delays_by_category(
 ) -> Dict[str, Tuple[Propagation, Propagation]]:
     """
     Finds the maximum propagation delay for each category of propagation (i.e., each unique pair of input-output
-    waveforms which saw transitions in the same period).
+    read_waveforms which saw transitions in the same period).
     :param propagations: List of propagations to process
     :return: Dictionary of maximum propagation delay for each category of propagation
     """

@@ -79,6 +79,7 @@ Users can:
 Users can:
 - Load waveforms from a DC analysis into a rudimentary DC Results object (no functionality yet)
 - Measure Read SRAM Noise Margin
+- Measure Write SRAM Noise Margin
 
 ## Usage
 

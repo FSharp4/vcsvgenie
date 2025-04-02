@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vcsvgenie"
-version = "2.0.0"
+version = "2.1.0"
 description = "Programmatic Interpretations of Cadence Virtuoso Waveform VCSV files"
 authors = [
     {name = "Jake Peterson", email = "jake612@duck.com"}
@@ -15,7 +15,8 @@ dependencies = [
     "matplotlib>=3.9.0,<4.0.0",
     "pandas>=2.2.0,<3.0.0",
     "scikit-learn>=1.5.0,<2.0.0",
-    "sortedcontainers>=2.4.0,<3.0.0"
+    "sortedcontainers>=2.4.0,<3.0.0",
+    "notebook (>=7.3.3,<8.0.0)"
 ]
 requires-python = ">=3.11"
 classifiers = [
