@@ -20,10 +20,10 @@ def construct_waveforms(
         waveform_dataframe: DataFrame, titles: List[str]
 ) -> List[WaveForm]:
     """
-    Constructs a list of waveforms from a dataframe and list of titles.
-    :param waveform_dataframe: Dataframe of waveforms
-    :param titles: List of titles
-    :return: List of waveforms taken from the dataframe, titled as they are in the titles list
+    Constructs a list of read_waveforms from a read_dataframe and list of read_titles.
+    :param waveform_dataframe: Dataframe of read_waveforms
+    :param titles: List of read_titles
+    :return: List of read_waveforms taken from the read_dataframe, titled as they are in the read_titles list
     """
     waveforms: List[WaveForm] = list()
     for idx, title in enumerate(titles):
