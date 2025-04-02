@@ -22,7 +22,7 @@ def read_vcsv(path: Path) -> Tuple[DataFrame, List[str]]:
     for title in titles:
         series.append(f"{title} X")
         series.append(f"{title} Y")
-    dataframe = read_csv(StringIO(linesep.join(lines[BEGIN_DATA_IDX:])))
+    dataframe = read_csv(StringIO(linesep.join(lines[BEGIN_DATA_IDX:])), names=titles)
     return dataframe, titles
 
 def read_vcsv_as_numpy(path: Path) -> Tuple[NDArray[np.float64], List[str]]:
