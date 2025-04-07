@@ -398,15 +398,23 @@ class TransientResult:
                 __transition_time = high_timestamp - low_timestamp
                 return __transition_time
 
-            if _transition_type == "Rising":
-                low_idx: int = int(np.where(interval_data > low_threshold)[0][0])
-                high_idx: int = int(np.where(interval_data > high_threshold)[0][0])
-            else:  # Falling
-                high_idx: int = int(np.where(interval_data < high_threshold)[0][0])
-                low_idx: int = int(np.where(interval_data < low_threshold)[0][0])
+            try:
+                if _transition_type == "Rising":
+                    low_idx: int = int(np.where(interval_data > low_threshold)[0][0])
+                    high_idx: int = int(np.where(interval_data > high_threshold)[0][0])
+                else:  # Falling
+                    high_idx: int = int(np.where(interval_data < high_threshold)[0][0])
+                    low_idx: int = int(np.where(interval_data < low_threshold)[0][0])
+            except IndexError as e:
+                # Invalid transition
+                raise e
 
-            _transition_time: float = extract_transition_time(low_idx, high_idx)
-            return _transition_type, _transition_time
+            try:
+                _transition_time: float = extract_transition_time(low_idx, high_idx)
+                return _transition_type, _transition_time
+            except IndexError as e:
+                # Invalid transition
+                raise e
 
         for input_series in self.inputs.keys():
             data = self.inputs[input_series]
@@ -416,7 +424,11 @@ class TransientResult:
             check_transitioned = ends_data != starts_data
             for idx, did_transition in enumerate(check_transitioned):
                 if did_transition:
-                    transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
+                    try:
+                        transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
+                    except IndexError:
+                        # Invalid transition
+                        continue # TODO: Find a better solution for intervals who start on the same side of the logic threshold as their supposed transition polarity
                     transition = Transition(
                         transition_type,
                         input_series,
@@ -437,7 +449,11 @@ class TransientResult:
             check_transitioned = ends_data != starts_data
             for idx, did_transition in enumerate(check_transitioned):
                 if did_transition:
-                    transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
+                    try:
+                        transition_type, transition_time = process_transition(idx, start_timestamp_idxs, end_timestamp_idxs)
+                    except IndexError:
+                        # Invalid transition
+                        continue
                     transition = Transition(
                         transition_type,
                         output_series,
