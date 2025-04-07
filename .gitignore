@@ -165,5 +165,5 @@ _examples
 *.csv
 vcsvgenie/_dev/monte_carlo_example copy.ipynb
 /.idea/
-vcsvgenie/_dev/Debug.png
-.DS_Store
+vcsvgenie/_dev/sram_array.ipynb
+/vcsvgenie/_dev/resources/datasets/**
