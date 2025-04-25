@@ -411,6 +411,8 @@ class TransientResult:
 
             try:
                 _transition_time: float = extract_transition_time(low_idx, high_idx)
+                if _transition_type == "Falling":
+                    _transition_time = -_transition_time
                 return _transition_type, _transition_time
             except IndexError as e:
                 # Invalid transition
