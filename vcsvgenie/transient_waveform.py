@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from sklearn.linear_model import LinearRegression
-from typing import Dict, List, Literal, Tuple
+from typing import Dict, List, Literal, Tuple, Optional
 from warnings import warn
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
@@ -104,8 +104,8 @@ class TransientResult:
             inputs: List[WaveForm],
             outputs: List[WaveForm],
             name: str = "Transient Results",
-            input_bus_dict: Dict | None = None,
-            output_bus_dict: Dict | None = None,
+            input_bus_dict: Optional[Dict] = None,
+            output_bus_dict: Optional[Dict] = None,
             clock_period: float = 1e-9,
             logic_threshold: float = 0.5,
             absolute_bus_bits: bool = True,
@@ -665,8 +665,8 @@ class TransientResultSpecification:
             self,
             inputs: List[str],
             outputs: List[str],
-            input_buses: Dict[str, Bus] | None = None,
-            output_buses: Dict[str, Bus] | None = None,
+            input_buses: Optional[Dict[str, Bus]] = None,
+            output_buses: Optional[Dict[str, Bus]] = None,
             logic_threshold: float = 0.5,
             clock_period: float = 1e-9,
     ):

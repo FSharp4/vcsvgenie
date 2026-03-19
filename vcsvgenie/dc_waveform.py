@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -116,7 +116,7 @@ def argfind_eye(w1: WaveForm, w2: WaveForm) -> Tuple[int, int]:
     else:
         return int(eye_transition[closest_transition - 1]), int(eye_transition[closest_transition])
 
-def unit_line_through_y_intercept(w: WaveForm, idx: int | NDArray[np.int32]) -> np.float64 | NDArray[np.float64]:
+def unit_line_through_y_intercept(w: WaveForm, idx: Union[int, NDArray[np.int32]]) -> Union[np.float64, NDArray[np.float64]]:
     """
     Calculates b for line(s) y = x + b intercepting the waveform w at indexes idx.
     This is useful for noise margin calculation.
@@ -129,7 +129,7 @@ def unit_line_through_y_intercept(w: WaveForm, idx: int | NDArray[np.int32]) -> 
     return y - x
 
 
-def cast_onto_unit_line(x: NDArray[np.float64], b: NDArray[np.float64] | np.float64) -> NDArray[np.float64]:
+def cast_onto_unit_line(x: NDArray[np.float64], b: Union[NDArray[np.float64], np.float64]) -> NDArray[np.float64]:
     """
     Projects datapoints x onto a unit line y = x + b
     This is useful for noise margin calculation.
